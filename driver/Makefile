@@ -7,7 +7,7 @@ binder_linux-y := deps.o binder.o
 $(obj)/deps.o: $(src)/deps.h
 
 $(obj)/deps.h: $(src)/gen_deps.sh
-	$(src)/gen_deps.sh > $@
+	sudo $(src)/gen_deps.sh > $@
 else
 KERNEL_SRC ?= /lib/modules/$(shell uname -r)/build
 
