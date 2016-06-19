@@ -13,6 +13,7 @@ cutils_sources := \
 	socket_loopback_client.c \
 	socket_loopback_server.c \
 	sockets.c \
+	strlcpy.c \
 	threads.c
 
 objects += $(patsubst %.c,cutils/%.o, $(cutils_sources))

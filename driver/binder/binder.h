@@ -170,7 +170,8 @@ struct binder_ptr_cookie {
 struct binder_handle_cookie {
 	__u32 handle;
 	binder_uintptr_t cookie;
-} __packed;
+};
+// } __packed;
 
 struct binder_pri_desc {
 	__s32 priority;

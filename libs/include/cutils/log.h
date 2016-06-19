@@ -18,20 +18,22 @@ typedef enum android_LogPriority {
     ANDROID_LOG_SILENT,     /* only for SetMinPriority(); must be last */
 } android_LogPriority;
 
-int __android_log_print(int prio, const char *tag, const char *fmt, ...)
-{
-    va_list ap;
-    char buf[LOG_BUF_SIZE];
+// int __android_log_print(int prio, const char *tag, const char *fmt, ...)
+// {
+//     va_list ap;
+//     char buf[LOG_BUF_SIZE];
  
-    va_start(ap, fmt);
-    vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
-    va_end(ap);
+//     va_start(ap, fmt);
+//     vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
+//     va_end(ap);
  
-    return fprintf(stderr, "%s", buf);
-}
+//     return fprintf(stderr, "%s", buf);
+// }
 
-#define android_printLog(prio, tag, x...) \
-    __android_log_print(prio, tag, x)
+// #define android_printLog(prio, tag, x...) \
+//     __android_log_print(prio, tag, x)
+
+#define android_printLog(prio, tag, x...) ((void)0)
 
 #ifndef LOG_NDEBUG
 #define LOG_NDEBUG 1
@@ -39,6 +41,10 @@ int __android_log_print(int prio, const char *tag, const char *fmt, ...)
 
 #ifndef LOG_TAG
 #define LOG_TAG NULL
+#endif
+
+#ifndef __predict_false
+#define __predict_false(exp) __builtin_expect((exp) != 0, 0)
 #endif
 
 #ifndef ALOG
@@ -76,6 +82,26 @@ int __android_log_print(int prio, const char *tag, const char *fmt, ...)
 #define ALOGE(...) ((void)ALOG(LOG_ERROR, LOG_TAG, __VA_ARGS__))
 #endif
 
+#ifndef SLOGV
+#define SLOGV(...) ((void)0)
+#endif
+
+#ifndef SLOGD
+#define SLOGD(...) ((void)0)
+#endif
+
+#ifndef SLOGI
+#define SLOGI(...) ((void)0)
+#endif
+
+#ifndef SLOGW
+#define SLOGW(...) ((void)0)
+#endif
+
+#ifndef SLOGE
+#define SLOGE(...) ((void)0)
+#endif
+
 #ifndef ALOGV_IF
 #define ALOGV_IF(cond, ...) ((void)0)
 #endif
@@ -109,17 +135,17 @@ int __android_log_print(int prio, const char *tag, const char *fmt, ...)
 #endif
 
 #ifndef LOG_ALWAYS_FATAL
-#define LOG_ALWAYS_FATAL(...) (void)0
+#define LOG_ALWAYS_FATAL(...) ((void)0)
 #endif
 
 #ifndef IF_ALOG
-#define IF_ALOG(priority, tag) (void)0
+#define IF_ALOG(priority, tag) ((void)0)
 #endif
 
 #ifndef IF_ALOGV
 #define IF_ALOGV() if (false)
 #endif
 
-#define android_errorWriteWithInfoLog(tag, subTag, uid, data, dataLen) (void)0
+#define android_errorWriteWithInfoLog(tag, subTag, uid, data, dataLen) ((void)0)
 
 #endif

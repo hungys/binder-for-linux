@@ -88,7 +88,7 @@ void LogPrinter::printLine(const char* string) {
 }
 
 void LogPrinter::printRaw(const char* string) {
-    __android_log_print(mPriority, mLogTag, "%s%s", mPrefix, string);
+    // __android_log_print(mPriority, mLogTag, "%s%s", mPrefix, string);
 }
 
 
