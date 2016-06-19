@@ -32,4 +32,5 @@
 *.dSYM/
 *.su
 
+.DS_Store
 .vscode/
