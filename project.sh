@@ -5,12 +5,14 @@ case ${cmd} in
     makeall)
         sh -c 'cd driver/binder && make'
         sh -c 'cd driver/ashmem && make'
+        sh -c 'cd servicemanager && make'
         sh -c 'cd libs && make'
         sh -c 'cd test && make'
         ;;  
     clean)
         sh -c 'cd driver/binder && make clean'
         sh -c 'cd driver/ashmem && make clean'
+        sh -c 'cd servicemanager && make clean'
         sh -c 'cd libs && make clean'
         sh -c 'cd test && make clean'
         ;; 
