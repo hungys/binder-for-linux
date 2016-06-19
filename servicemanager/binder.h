@@ -5,7 +5,7 @@
 #define _BINDER_H_
 
 #include <sys/ioctl.h>
-#include <driver/binder.h>
+#include <driver/binder/binder.h>
 
 struct binder_state;
 
