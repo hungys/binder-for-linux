@@ -3693,10 +3693,27 @@ static int __init binder_init(void)
 				    &binder_transaction_log_fops);
 	}
 
+	pr_info("initialized\n");
+
 	return ret;
 }
 
-device_initcall(binder_init);
+static void __exit binder_exit(void)
+{
+	int ret;
+
+	ret = misc_deregister(&binder_miscdev);
+	if (unlikely(ret))
+		pr_err("failed to unregister misc device!\n");
+
+	if (binder_deferred_workqueue)
+		destroy_workqueue(binder_deferred_workqueue);
+
+	pr_info("unloaded\n");
+}
+
+module_init(binder_init);
+module_exit(binder_exit);
 
 #define CREATE_TRACE_POINTS
 #include "binder_trace.h"
