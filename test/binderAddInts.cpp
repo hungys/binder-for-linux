@@ -63,11 +63,13 @@ struct options {
     int serverCPU;
     int clientCPU;
     unsigned int iterations;
+    unsigned int payloadSize;
     float        iterDelay; // End of iteration delay in seconds
 } options = { // Set defaults
     unbound, // Server CPU
     unbound, // Client CPU
     1000,    // Iterations
+    0,       // Payload size 
     1e-3,    // End of iteration delay
 };
 
@@ -112,7 +114,7 @@ int main(int argc, char *argv[])
 
     // Parse command line arguments
     int opt;
-    while ((opt = getopt(argc, argv, "s:c:n:d:?")) != -1) {
+    while ((opt = getopt(argc, argv, "s:c:n:d:p:?")) != -1) {
         char *chptr; // character pointer for command-line parsing
 
         switch (opt) {
@@ -159,6 +161,14 @@ int main(int argc, char *argv[])
             }
             break;
 
+        case 'p': // payload size
+            options.payloadSize = strtoul(optarg, &chptr, 10);
+            if (*chptr != '\0') {
+                cerr << "Invalid payload size specified of: " << optarg << endl;
+                exit(7);
+            }
+            break;
+
         case '?':
         default:
             cerr << basename(argv[0]) << " [options]" << endl;
@@ -167,7 +177,8 @@ int main(int argc, char *argv[])
             cerr << "    -c cpu - client CPU number" << endl;
             cerr << "    -n num - iterations" << endl;
             cerr << "    -d time - delay after operation in seconds" << endl;
-            exit(((optopt == 0) || (optopt == '?')) ? 0 : 7);
+            cerr << "    -p payload - payload size (0 for correctness test)" << endl;
+            exit(((optopt == 0) || (optopt == '?')) ? 0 : 8);
         }
     }
 
@@ -188,6 +199,11 @@ int main(int argc, char *argv[])
     cout << endl;
     cout << "iterations: " << options.iterations << endl;
     cout << "iterDelay: " << options.iterDelay << endl;
+    if (options.payloadSize == 0) {
+        cout << "mode: correctness test" << endl;
+    } else {
+        cout << "mode: performance test (payload size = " << options.payloadSize << " bytes)" << endl;
+    }
 
     // Fork client, use this process as server
     fflush(stdout);
@@ -259,15 +275,25 @@ static void client(void)
     // Perform the IPC operations
     for (unsigned int iter = 0; iter < options.iterations; iter++) {
         Parcel send, reply;
+        int expected;
 
-        // Create parcel to be sent.  Will use the iteration cound
-        // and the iteration count + 3 as the two integer values
-        // to be sent.
-        int val1 = iter;
-        int val2 = iter + 3;
-        int expected = val1 + val2;  // Expect to get the sum back
-        send.writeInt32(val1);
-        send.writeInt32(val2);
+        if (options.payloadSize == 0) {
+            // Create parcel to be sent.  Will use the iteration cound
+            // and the iteration count + 3 as the two integer values
+            // to be sent.
+            int val1 = iter;
+            int val2 = iter + 3;
+            expected = val1 + val2;  // Expect to get the sum back
+            send.writeInt32(val1);
+            send.writeInt32(val2);
+        } else {
+            expected = options.payloadSize;
+            char *buf = new char[expected + 1];
+            fill(buf, buf + expected, 'a');
+            buf[expected] = 0;
+            send.writeInt32(strlen(buf));
+            send.writeCString(buf);
+        }
 
         // Send the parcel, while timing how long it takes for
         // the answer to return.
@@ -289,10 +315,12 @@ static void client(void)
         max = (delta > max) ? delta : max;
         total += delta;
         int result = reply.readInt32();
-        if (result != (int) (iter + iter + 3)) {
+        if (result != expected) {
             cerr << "Unexpected result for iteration " << iter << endl;
             cerr << "  result: " << result << endl;
             cerr << "expected: " << expected << endl;
+        } else if (options.payloadSize == 0) {
+            cout << "#" << iter << " pass, result: " << result << " expected: " << expected << endl;
         }
 
         if (options.iterDelay > 0.0) { testDelaySpin(options.iterDelay); }
@@ -330,9 +358,14 @@ status_t AddIntsService::onTransact(uint32_t code, const Parcel &data,
     // Perform the requested operation
     switch (code) {
     case ADD_INTS:
-        val1 = data.readInt32();
-        val2 = data.readInt32();
-        reply->writeInt32(val1 + val2);
+        if (options.payloadSize == 0) {
+            val1 = data.readInt32();
+            val2 = data.readInt32();
+            reply->writeInt32(val1 + val2);
+        } else {
+            val1 = data.readInt32();
+            reply->writeInt32(val1);
+        }
         break;
 
     default:
