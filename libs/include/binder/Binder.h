@@ -71,7 +71,7 @@ private:
 
     class Extras;
 
-    std::atomic<uintptr_t>   mExtras;  // should be atomic<Extras *>
+    std::atomic<Extras *>   mExtras;
             void*       mReserved0;
 };
 
@@ -95,7 +95,7 @@ private:
 
     IBinder* const          mRemote;
     RefBase::weakref_type*  mRefs;
-    volatile int32_t        mState;
+    std::atomic<int32_t>    mState;
 };
 
 }; // namespace android

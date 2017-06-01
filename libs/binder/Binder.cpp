@@ -70,9 +70,8 @@ public:
 
 // ---------------------------------------------------------------------------
 
-BBinder::BBinder()
+BBinder::BBinder() : mExtras(nullptr)
 {
-  atomic_init(&mExtras, static_cast<uintptr_t>(0));
 }
 
 bool BBinder::isBinderAlive() const
@@ -139,19 +138,17 @@ void BBinder::attachObject(
     const void* objectID, void* object, void* cleanupCookie,
     object_cleanup_func func)
 {
-    Extras* e = reinterpret_cast<Extras*>(
-                    atomic_load_explicit(&mExtras, std::memory_order_acquire));
+    Extras* e = mExtras.load(std::memory_order_acquire);
 
     if (!e) {
         e = new Extras;
-        uintptr_t expected = 0;
-        if (!atomic_compare_exchange_strong_explicit(
-                                        &mExtras, &expected,
-                                        reinterpret_cast<uintptr_t>(e),
-                                        std::memory_order_release,
-                                        std::memory_order_acquire)) {
+
+        Extras* expected = nullptr;
+        if (!mExtras.compare_exchange_strong(expected, e,
+                                             std::memory_order_release,
+                                             std::memory_order_acquire)) {
             delete e;
-            e = reinterpret_cast<Extras*>(expected);  // Filled in by CAS
+            e = expected;  // Filled in by CAS
         }
         if (e == 0) return; // out of memory
     }
@@ -160,18 +157,9 @@ void BBinder::attachObject(
     e->mObjects.attach(objectID, object, cleanupCookie, func);
 }
 
-// The C11 standard doesn't allow atomic loads from const fields,
-// though C++11 does.  Fudge it until standards get straightened out.
-static inline uintptr_t load_const_atomic(const std::atomic<uintptr_t>* p,
-                                          std::memory_order mo) {
-    std::atomic<uintptr_t>* non_const_p = const_cast<std::atomic<uintptr_t>*>(p);
-    return atomic_load_explicit(non_const_p, mo);
-}
-
 void* BBinder::findObject(const void* objectID) const
 {
-    Extras* e = reinterpret_cast<Extras*>(
-                    load_const_atomic(&mExtras, std::memory_order_acquire));
+    Extras* e = mExtras.load(std::memory_order_acquire);
     if (!e) return NULL;
 
     AutoMutex _l(e->mLock);
@@ -180,8 +168,7 @@ void* BBinder::findObject(const void* objectID) const
 
 void BBinder::detachObject(const void* objectID)
 {
-    Extras* e = reinterpret_cast<Extras*>(
-                    atomic_load_explicit(&mExtras, std::memory_order_acquire));
+    Extras* e = mExtras.load(std::memory_order_acquire);
     if (!e) return;
 
     AutoMutex _l(e->mLock);
@@ -195,8 +182,7 @@ BBinder* BBinder::localBinder()
 
 BBinder::~BBinder()
 {
-    Extras* e = reinterpret_cast<Extras*>(
-                    atomic_load_explicit(&mExtras, std::memory_order_relaxed));
+    Extras* e = mExtras.load(std::memory_order_acquire);
     if (e) delete e;
 }
 
@@ -252,7 +238,7 @@ BpRefBase::BpRefBase(const sp<IBinder>& o)
 BpRefBase::~BpRefBase()
 {
     if (mRemote) {
-        if (!(mState&kRemoteAcquired)) {
+       if (!(mState.load(std::memory_order_relaxed)&kRemoteAcquired)) {
             mRemote->decStrong(this);
         }
         mRefs->decWeak(this);
@@ -261,7 +247,7 @@ BpRefBase::~BpRefBase()
 
 void BpRefBase::onFirstRef()
 {
-    android_atomic_or(kRemoteAcquired, &mState);
+    mState.fetch_or(kRemoteAcquired, std::memory_order_relaxed);
 }
 
 void BpRefBase::onLastStrongRef(const void* /*id*/)
