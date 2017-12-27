@@ -8,6 +8,7 @@ case ${cmd} in
         sh -c 'cd servicemanager && make'
         sh -c 'cd libs && make'
         sh -c 'cd test && make'
+        sh -c 'cd cmds && make'
         ;;  
     clean)
         sh -c 'cd driver/binder && make clean'
@@ -15,6 +16,7 @@ case ${cmd} in
         sh -c 'cd servicemanager && make clean'
         sh -c 'cd libs && make clean'
         sh -c 'cd test && make clean'
+        sh -c 'cd cmds && make clean'
         ;; 
     insmod)
         sh -c 'sudo insmod driver/binder/binder_linux.ko'
