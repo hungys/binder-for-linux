@@ -31,6 +31,7 @@ typedef unsigned int __u32;
 
 #include <driver/ashmem/uapi_ashmem.h>
 #include <cutils/ashmem.h>
+#include <cutils/memory.h>
 
 #define ASHMEM_DEVICE	"/dev/ashmem"
 

@@ -28,6 +28,8 @@
 
 using namespace android;
 
+static const char *prog_name;
+
 void writeString16(Parcel& parcel, const char* string)
 {
     if (string != NULL)
@@ -71,6 +73,13 @@ int main(int argc, char* const argv[])
     bool wantsUsage = false;
     int result = 0;
 
+    /* Strip path off the program name. */
+    prog_name = strrchr(argv[0], '/');
+    if (prog_name)
+        prog_name++;
+    else
+        prog_name = argv[0];
+
     while (1) {
         int ic = getopt(argc, argv, "h?");
         if (ic < 0)
@@ -82,7 +91,7 @@ int main(int argc, char* const argv[])
             wantsUsage = true;
             break;
         default:
-            aerr << "service: Unknown option -" << ic << endl;
+            aerr << prog_name << ": Unknown option -" << ic << endl;
             wantsUsage = true;
             result = 10;
             break;
@@ -94,7 +103,7 @@ int main(int argc, char* const argv[])
     sp<IServiceManager> sm = defaultServiceManager();
     fflush(stdout);
     if (sm == NULL) {
-        aerr << "service: Unable to get default service manager!" << endl;
+        aerr << prog_name << ": Unable to get default service manager!" << endl;
         return 20;
     }
 
@@ -108,7 +117,7 @@ int main(int argc, char* const argv[])
                 aout << "Service " << argv[optind] <<
                     (service == NULL ? ": not found" : ": found") << endl;
             } else {
-                aerr << "service: No service specified for check" << endl;
+                aerr << prog_name << ": No service specified for check" << endl;
                 wantsUsage = true;
                 result = 10;
             }
@@ -142,7 +151,7 @@ int main(int argc, char* const argv[])
                         if (strcmp(argv[optind], "i32") == 0) {
                             optind++;
                             if (optind >= argc) {
-                                aerr << "service: no integer supplied for 'i32'" << endl;
+                                aerr << prog_name << ": no integer supplied for 'i32'" << endl;
                                 wantsUsage = true;
                                 result = 10;
                                 break;
@@ -151,7 +160,7 @@ int main(int argc, char* const argv[])
                         } else if (strcmp(argv[optind], "i64") == 0) {
                             optind++;
                             if (optind >= argc) {
-                                aerr << "service: no integer supplied for 'i64'" << endl;
+                                aerr << prog_name << ": no integer supplied for 'i64'" << endl;
                                 wantsUsage = true;
                                 result = 10;
                                 break;
@@ -160,7 +169,7 @@ int main(int argc, char* const argv[])
                         } else if (strcmp(argv[optind], "s16") == 0) {
                             optind++;
                             if (optind >= argc) {
-                                aerr << "service: no string supplied for 's16'" << endl;
+                                aerr << prog_name << ": no string supplied for 's16'" << endl;
                                 wantsUsage = true;
                                 result = 10;
                                 break;
@@ -169,7 +178,7 @@ int main(int argc, char* const argv[])
                         } else if (strcmp(argv[optind], "f") == 0) {
                             optind++;
                             if (optind >= argc) {
-                                aerr << "service: no number supplied for 'f'" << endl;
+                                aerr << prog_name << ": no number supplied for 'f'" << endl;
                                 wantsUsage = true;
                                 result = 10;
                                 break;
@@ -178,7 +187,7 @@ int main(int argc, char* const argv[])
                         } else if (strcmp(argv[optind], "d") == 0) {
                             optind++;
                             if (optind >= argc) {
-                                aerr << "service: no number supplied for 'd'" << endl;
+                                aerr << prog_name << ": no number supplied for 'd'" << endl;
                                 wantsUsage = true;
                                 result = 10;
                                 break;
@@ -267,7 +276,7 @@ int main(int argc, char* const argv[])
                             // for now just set the extra field to be null.
                             data.writeInt32(-1);
                         } else {
-                            aerr << "service: unknown option " << argv[optind] << endl;
+                            aerr << prog_name << ": unknown option " << argv[optind] << endl;
                             wantsUsage = true;
                             result = 10;
                             break;
@@ -277,38 +286,38 @@ int main(int argc, char* const argv[])
                     service->transact(code, data, &reply);
                     aout << "Result: " << reply << endl;
                 } else {
-                    aerr << "service: Service " << argv[serviceArg]
+                    aerr << prog_name << ": Service " << argv[serviceArg]
                         << " does not exist" << endl;
                     result = 10;
                 }
             } else {
                 if (optind < argc) {
-                    aerr << "service: No service specified for call" << endl;
+                    aerr << prog_name << ": No service specified for call" << endl;
                 } else {
-                    aerr << "service: No code specified for call" << endl;
+                    aerr << prog_name << ": No code specified for call" << endl;
                 }
                 wantsUsage = true;
                 result = 10;
             }
         } else {
-            aerr << "service: Unknown command " << argv[optind] << endl;
+            aerr << prog_name << ": Unknown command " << argv[optind] << endl;
             wantsUsage = true;
             result = 10;
         }
     }
 
     if (wantsUsage) {
-        aout << "Usage: service [-h|-?]\n"
-                "       service list\n"
-                "       service check SERVICE\n"
-                "       service call SERVICE CODE [i32 N | i64 N | f N | d N | s16 STR ] ...\n"
+        aout << "Usage: " << prog_name << " [-h|-?]\n"
+                "       " << prog_name << " list\n"
+                "       " << prog_name << " check SERVICE\n"
+                "       " << prog_name << " call SERVICE CODE [i32 N | i64 N | f N | d N | s16 STR ] ...\n"
                 "Options:\n"
                 "   i32: Write the 32-bit integer N into the send parcel.\n"
                 "   i64: Write the 64-bit integer N into the send parcel.\n"
                 "   f:   Write the 32-bit single-precision number N into the send parcel.\n"
                 "   d:   Write the 64-bit double-precision number N into the send parcel.\n"
                 "   s16: Write the UTF-16 string STR into the send parcel.\n";
-//                "   intent: Write and Intent int the send parcel. ARGS can be\n"
+//                "   intent: Write an Intent into the send parcel. ARGS can be\n"
 //                "       action=STR data=STR type=STR launchFlags=INT component=STR categories=STR[,STR,...]\n";
         return result;
     }

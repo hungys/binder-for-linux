@@ -25,6 +25,7 @@
 
 #include <cutils/sched_policy.h>
 #include <cutils/log.h>
+#include <cutils/threads.h>
 
 #define UNUSED __attribute__((__unused__))
 

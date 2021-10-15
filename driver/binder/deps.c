@@ -9,7 +9,7 @@
 #include "deps.h"
 
 static struct vm_struct *(*get_vm_area_ptr)(unsigned long, unsigned long) = GET_VM_AREA;
-static void (*zap_page_range_ptr)(struct vm_area_struct *, unsigned long, unsigned long, struct zap_details *) = ZAP_PAGE_RANGE;
+static void (*zap_page_range_ptr)(struct vm_area_struct *, unsigned long, unsigned long) = ZAP_PAGE_RANGE;
 static int (*map_kernel_range_noflush_ptr)(unsigned long start, unsigned long size, pgprot_t prot, struct page **pages) = MAP_KERNEL_RANGE_NOFLUSH;
 static void (*unmap_kernel_range_ptr)(unsigned long, unsigned long) = UNMAP_KERNEL_RANGE;
 static struct files_struct *(*get_files_struct_ptr)(struct task_struct *) = GET_FILES_STRUCT;
@@ -29,9 +29,9 @@ struct vm_struct *get_vm_area(unsigned long size, unsigned long flags)
 	return get_vm_area_ptr(size, flags);
 }
 
-void zap_page_range(struct vm_area_struct *vma, unsigned long address, unsigned long size, struct zap_details *details)
+void zap_page_range(struct vm_area_struct *vma, unsigned long address, unsigned long size)
 {
-	zap_page_range_ptr(vma, address, size, details);
+	zap_page_range_ptr(vma, address, size);
 }
 
 int map_kernel_range_noflush(unsigned long start, unsigned long size, pgprot_t prot, struct page **pages)

@@ -1,3 +1,19 @@
+# CLion
+.idea/
+cmake-build-debug
+CMakeLists.txt
+servicemanager/servicemanager
+cmds/service
+test/binderAddInts
+*.mod.c
+*.mod
+*.cmd
+*.order
+*.symvers
+.cache.mk
+deps.h
+
+
 # Object files
 *.o
 *.ko
