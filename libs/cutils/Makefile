@@ -1,7 +1,6 @@
 cutils_sources := \
 	ashmem-dev.c \
 	ashmem-host.c \
-	atomic.c \
 	native_handle.c \
 	process_name.c \
 	properties.c \
@@ -16,4 +15,10 @@ cutils_sources := \
 	strlcpy.c \
 	threads.c
 
-objects += $(patsubst %.c,cutils/%.o, $(cutils_sources))
+cutils_objects += $(patsubst %.c,cutils/%.o, $(cutils_sources))
+
+cutils_lib := libcutils.a
+
+all_libs += $(cutils_lib)
+
+$(cutils_lib): $(cutils_objects)

@@ -22,4 +22,10 @@ binder_sources := \
 	Static.cpp \
 	TextOutput.cpp
 
-objects += $(patsubst %.cpp,binder/%.o, $(binder_sources))
+binder_objects += $(patsubst %.cpp,binder/%.o, $(binder_sources))
+
+binder_lib := libbinder.a
+
+all_libs += $(binder_lib)
+
+$(binder_lib): $(binder_objects)

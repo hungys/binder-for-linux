@@ -25,4 +25,10 @@ utils_sources := \
 	Unicode.cpp \
 	VectorImpl.cpp
 
-objects += $(patsubst %.cpp,utils/%.o, $(utils_sources))
+utils_objects += $(patsubst %.cpp,utils/%.o, $(utils_sources))
+
+utils_lib = libutils.a
+
+all_libs += $(utils_lib)
+
+$(utils_lib): $(utils_objects)
