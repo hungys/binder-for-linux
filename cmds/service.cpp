@@ -18,13 +18,18 @@
 #include <binder/ProcessState.h>
 #include <binder/IServiceManager.h>
 #include <binder/TextOutput.h>
+#include <cutils/ashmem.h>
 
 #include <getopt.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/mman.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 using namespace android;
 
@@ -32,7 +37,7 @@ static const char *prog_name;
 
 void writeString16(Parcel& parcel, const char* string)
 {
-    if (string != NULL)
+    if (string != nullptr)
     {
         parcel.writeString16(String16(string));
     }
@@ -45,7 +50,7 @@ void writeString16(Parcel& parcel, const char* string)
 // get the name of the generic interface we hold a reference to
 static String16 get_interface_name(sp<IBinder> service)
 {
-    if (service != NULL) {
+    if (service != nullptr) {
         Parcel data, reply;
         status_t err = service->transact(IBinder::INTERFACE_TRANSACTION, data, &reply);
         if (err == NO_ERROR) {
@@ -70,15 +75,15 @@ static String8 good_old_string(const String16& src)
 
 int main(int argc, char* const argv[])
 {
-    bool wantsUsage = false;
-    int result = 0;
-
     /* Strip path off the program name. */
     prog_name = strrchr(argv[0], '/');
     if (prog_name)
         prog_name++;
     else
         prog_name = argv[0];
+
+    bool wantsUsage = false;
+    int result = 0;
 
     while (1) {
         int ic = getopt(argc, argv, "h?");
@@ -102,7 +107,7 @@ int main(int argc, char* const argv[])
 #endif
     sp<IServiceManager> sm = defaultServiceManager();
     fflush(stdout);
-    if (sm == NULL) {
+    if (sm == nullptr) {
         aerr << prog_name << ": Unable to get default service manager!" << endl;
         return 20;
     }
@@ -115,7 +120,7 @@ int main(int argc, char* const argv[])
             if (optind < argc) {
                 sp<IBinder> service = sm->checkService(String16(argv[optind]));
                 aout << "Service " << argv[optind] <<
-                    (service == NULL ? ": not found" : ": found") << endl;
+                    (service == nullptr ? ": not found" : ": found") << endl;
             } else {
                 aerr << prog_name << ": No service specified for check" << endl;
                 wantsUsage = true;
@@ -140,7 +145,7 @@ int main(int argc, char* const argv[])
                 sp<IBinder> service = sm->checkService(String16(argv[optind++]));
                 String16 ifName = get_interface_name(service);
                 int32_t code = atoi(argv[optind++]);
-                if (service != NULL && ifName.size() > 0) {
+                if (service != nullptr && ifName.size() > 0) {
                     Parcel data, reply;
 
                     // the interface name is first
@@ -195,28 +200,81 @@ int main(int argc, char* const argv[])
                             data.writeDouble(atof(argv[optind++]));
                         } else if (strcmp(argv[optind], "null") == 0) {
                             optind++;
-                            data.writeStrongBinder(NULL);
+                            data.writeStrongBinder(nullptr);
+                        } else if (strcmp(argv[optind], "fd") == 0) {
+                            optind++;
+                            if (optind >= argc) {
+                                aerr << prog_name << ": no path supplied for 'fd'" << endl;
+                                wantsUsage = true;
+                                result = 10;
+                                break;
+                            }
+                            const char *path = argv[optind++];
+                            int fd = open(path, O_RDONLY);
+                            if (fd < 0) {
+                                aerr << prog_name << ": could not open '" << path << "'" << endl;
+                                wantsUsage = true;
+                                result = 10;
+                                break;
+                            }
+                            data.writeFileDescriptor(fd, true /* take ownership */);
+                        } else if (strcmp(argv[optind], "afd") == 0) {
+                            optind++;
+                            if (optind >= argc) {
+                                aerr << prog_name << ": no path supplied for 'afd'" << endl;
+                                wantsUsage = true;
+                                result = 10;
+                                break;
+                            }
+                            const char *path = argv[optind++];
+                            int fd = open(path, O_RDONLY);
+                            struct stat statbuf;
+                            if (fd < 0 || fstat(fd, &statbuf) != 0) {
+                                aerr << prog_name << ": could not open or stat"
+                                    << " '" << path << "'" << endl;
+                                wantsUsage = true;
+                                result = 10;
+                                break;
+                            }
+                            int afd = ashmem_create_region("test", statbuf.st_size);
+                            void* ptr = mmap(NULL, statbuf.st_size,
+                                   PROT_READ | PROT_WRITE, MAP_SHARED, afd, 0);
+                            read(fd, ptr, statbuf.st_size);
+                            close(fd);
+                            data.writeFileDescriptor(afd, true /* take ownership */);
+                        } else if (strcmp(argv[optind], "nfd") == 0) {
+                            optind++;
+                            if (optind >= argc) {
+                                aerr << prog_name << ": no file descriptor supplied for"
+                                    << " 'nfd'" << endl;
+                                wantsUsage = true;
+                                result = 10;
+                                break;
+                            }
+                            data.writeFileDescriptor(
+                                    atoi(argv[optind++]), true /* take ownership */);
+
                         } else if (strcmp(argv[optind], "intent") == 0) {
 
-                            char* action = NULL;
-                            char* dataArg = NULL;
-                            char* type = NULL;
+                            char* action = nullptr;
+                            char* dataArg = nullptr;
+                            char* type = nullptr;
                             int launchFlags = 0;
-                            char* component = NULL;
+                            char* component = nullptr;
                             int categoryCount = 0;
                             char* categories[16];
 
-                            char* context1 = NULL;
+                            char* context1 = nullptr;
 
                             optind++;
 
                             while (optind < argc)
                             {
                                 char* key = strtok_r(argv[optind], "=", &context1);
-                                char* value = strtok_r(NULL, "=", &context1);
+                                char* value = strtok_r(nullptr, "=", &context1);
 
                                 // we have reached the end of the XXX=XXX args.
-                                if (key == NULL) break;
+                                if (key == nullptr) break;
 
                                 if (strcmp(key, "action") == 0)
                                 {
@@ -240,14 +298,13 @@ int main(int argc, char* const argv[])
                                 }
                                 else if (strcmp(key, "categories") == 0)
                                 {
-                                    char* context2 = NULL;
-                                    int categoryCount = 0;
+                                    char* context2 = nullptr;
                                     categories[categoryCount] = strtok_r(value, ",", &context2);
 
-                                    while (categories[categoryCount] != NULL)
+                                    while (categories[categoryCount] != nullptr)
                                     {
                                         categoryCount++;
-                                        categories[categoryCount] = strtok_r(NULL, ",", &context2);
+                                        categories[categoryCount] = strtok_r(nullptr, ",", &context2);
                                     }
                                 }
 
@@ -310,13 +367,19 @@ int main(int argc, char* const argv[])
         aout << "Usage: " << prog_name << " [-h|-?]\n"
                 "       " << prog_name << " list\n"
                 "       " << prog_name << " check SERVICE\n"
-                "       " << prog_name << " call SERVICE CODE [i32 N | i64 N | f N | d N | s16 STR ] ...\n"
+                "       " << prog_name << " call SERVICE CODE [i32 N | i64 N | f N | d N | s16 STR"
+                " | null | fd f | nfd n | afd f ] ...\n"
                 "Options:\n"
                 "   i32: Write the 32-bit integer N into the send parcel.\n"
                 "   i64: Write the 64-bit integer N into the send parcel.\n"
                 "   f:   Write the 32-bit single-precision number N into the send parcel.\n"
                 "   d:   Write the 64-bit double-precision number N into the send parcel.\n"
-                "   s16: Write the UTF-16 string STR into the send parcel.\n";
+                "   s16: Write the UTF-16 string STR into the send parcel.\n"
+                "  null: Write a null binder into the send parcel.\n"
+                "    fd: Write a file descriptor for the file f to the send parcel.\n"
+                "   nfd: Write file descriptor n to the send parcel.\n"
+                "   afd: Write an ashmem file descriptor for a region containing the data from"
+                " file f to the send parcel.\n";
 //                "   intent: Write an Intent into the send parcel. ARGS can be\n"
 //                "       action=STR data=STR type=STR launchFlags=INT component=STR categories=STR[,STR,...]\n";
         return result;
