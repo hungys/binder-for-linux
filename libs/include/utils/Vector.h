@@ -246,11 +246,18 @@ Vector<TYPE>& Vector<TYPE>::operator = (const Vector<TYPE>& rhs) {
     return *this; 
 }
 
-template<class TYPE> inline
-const Vector<TYPE>& Vector<TYPE>::operator = (const Vector<TYPE>& rhs) const {
-    VectorImpl::operator = (static_cast<const VectorImpl&>(rhs));
-    return *this;
-}
+// NOTE:
+// https://github.com/facebook/redex/commit/253b77159d6783786c8814168d1ff2b783d3a531
+// This method is causing compilation issues and it doesn't make any sense to me.
+// It's a copy assignment operator that claims to be constant (as far as I can tell).
+// Let's delete it because there's a non-const version right below.
+// And this gcc-7 bug report about failing to build AOSP
+// https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=853312
+// template<class TYPE> inline
+// const Vector<TYPE>& Vector<TYPE>::operator = (const Vector<TYPE>& rhs) const {
+//     VectorImpl::operator = (static_cast<const VectorImpl&>(rhs));
+//     return *this;
+// }
 
 template<class TYPE> inline
 Vector<TYPE>& Vector<TYPE>::operator = (const SortedVector<TYPE>& rhs) {
